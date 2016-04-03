@@ -32,4 +32,9 @@ ifdef NODE_ID
   CFLAGS += -DNODE_ID=${NODE_ID}
 endif
 
+AVRDUDE_MCU=pic32
+AVRDUDE_PROGRAMMER=stk500v2
+AVRDUDE_PORT:=/dev/ttyACM0
+AVRDUDE_OPTIONS=-V
+
 include $(CONTIKI)/cpu/pic32/Makefile.pic32
