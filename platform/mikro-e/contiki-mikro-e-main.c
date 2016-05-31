@@ -45,7 +45,7 @@
 #include <sensors.h>
 #include "button-sensor.h"
 
-#define UART_DEBUG_BAUDRATE 115200
+#define UART_DEBUG_BAUDRATE 56700
 SENSORS(&button_sensor, &button_sensor2);
 
 /*---------------------------------------------------------------------------*/
