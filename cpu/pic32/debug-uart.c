@@ -62,6 +62,8 @@
 #define PRINTF(...)
 #endif
 
+void dummycb(char c) { (void) c; }
+
 #define DEBUG_UART(XX, YY)                            \
   void                                                \
   _mon_putc(char c)                                   \
@@ -77,8 +79,8 @@
     PRINTF("Initializing debug uart: %lubps\n", ubr); \
   }                                                   \
                                                       \
-  UART_INTERRUPT(XX, YY, pic32_uart##XX##_write);
-
+  UART_INTERRUPT(XX, YY, dummycb);
+  //UART_INTERRUPT(XX, YY, pic32_uart##XX##_write);
 
 #ifdef __32MX795F512L__
   #ifdef __USE_UART_PORT1A_FOR_DEBUG__
