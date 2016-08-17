@@ -38,21 +38,36 @@
 #include <platform-init.h>
 #include <debug-uart.h>
 #include <pic32_irq.h>
-#include <dev/cc2520/cc2520.h>
+#ifdef __USE_CC2520__
+  #include <dev/cc2520/cc2520.h>
+#elif  __USE_CA8210__
+  #include <dev/ca8210/ca8210-radio.h>
+#endif
 #include "dev/serial-line.h"
 #include <net-init.h>
 #include <leds.h>
 #include <sensors.h>
 #include "button-sensor.h"
+#include "dev/common-clicks.h"
+#include "dev/interrupts.h"
 
-#define UART_DEBUG_BAUDRATE 56700
+void (*interrupt_isr)(void) = NULL;
+
+#define UART_DEBUG_BAUDRATE 115200
+
+#ifdef MOTION_CLICK
+SENSORS(&button_sensor, &button_sensor2, &motion_sensor);
+#elif PROXIMITY_CLICK
+SENSORS(&button_sensor, &button_sensor2, &proximity_sensor);
+#else
 SENSORS(&button_sensor, &button_sensor2);
+#endif
 
 /*---------------------------------------------------------------------------*/
 int
 main(int argc, char **argv)
 {
-  int32_t r;
+  int32_t r = 0;
 
   pic32_init();
   watchdog_init();
@@ -71,8 +86,11 @@ main(int argc, char **argv)
 
   dbg_setup_uart(UART_DEBUG_BAUDRATE);
   net_init();
-
+#ifdef __USE_UART_PORT3__
   uart3_set_input(serial_line_input_byte);
+#elif  __USE_UART_PORT2__
+  uart2_set_input(serial_line_input_byte);
+#endif
   serial_line_init();
 
   autostart_start(autostart_processes);
@@ -99,11 +117,32 @@ ISR(_CHANGE_NOTICE_VECTOR)
   } else if(BUTTON2_CHECK_IRQ()) {
     /* Button2 was pressed */
     button2_isr();
+#ifdef MOTION_CLICK
+  } else if(MOTION_SENSOR_CHECK_IRQ()) {
+    /* Motion was detected */
+    motion_sensor_isr();
+#elif PROXIMITY_CLICK
+  } else if(PROXIMITY_SENSOR_CHECK_IRQ()) {
+    /* Proximity was detected */
+    proximity_sensor_isr();
+#endif
+  }
+  else if(INTERRUPT_CHECK_IRQ() && interrupt_isr != NULL) {
+    interrupt_isr();
   }
 }
 
-ISR(_EXTERNAL_1_VECTOR)
-{
+
+/*---------------------------------------------------------------------------*/
+#ifdef __USE_CC2520__
+ ISR(_EXTERNAL_1_VECTOR)
+ {
     cc2520_interrupt();
-}
+ }
+#elif __USE_CA8210__
+ ISR(_EXTERNAL_1_VECTOR)
+ {
+    ca8210_interrupt();
+ }
+#endif
 /*---------------------------------------------------------------------------*/

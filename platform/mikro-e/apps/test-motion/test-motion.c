@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, Imagination Technologies Limited and/or its
+ * Copyright (c) 2016, Imagination Technologies Limited and/or its
  * affiliated group companies.
  *
  * All rights reserved.
@@ -29,81 +29,44 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "platform-init.h"
-#include <p32xxxx.h>
-#include <pic32_irq.h>
+/**
+ * \file
+ * 	A test application for motion-click.
+ * 	http://www.mikroe.com/click/motion/
+ *
+ */
 
+#include <contiki.h>
+#include <stdio.h>
+#include <lib/sensors.h>
+#include "dev/common-clicks.h"
+#include "dev/leds.h"
+#include "sys/clock.h"
 /*---------------------------------------------------------------------------*/
-void
-platform_init()
+PROCESS(test_motion, "Motion click test");
+AUTOSTART_PROCESSES(&test_motion);
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(test_motion, ev, data)
 {
-  /* Disable interrupts */
-  ASM_DIS_INT;
-
-  /* Unlock sequence */
-  SYSKEY = 0;
-  SYSKEY = 0xaa996655;
-  SYSKEY = 0x556699aa;
-  CFGCONbits.IOLOCK=0;
-
-  /* Configure remappable pins */
-
-  /* Uart2 Tx : RPD11 */
-  TRISDCLR = _TRISD_TRISD11_MASK;
-  RPD11R = 0b0001;
-
-  /* Uart2 Rx : RPB9 */
-  ANSELBCLR = _ANSELB_ANSB9_MASK;
-  TRISBSET = _TRISB_TRISB9_MASK;
-  U2RXR = 0b0101;
-
-  /* Uart3 Tx : RPF4 */
-  TRISFCLR = _TRISF_TRISF4_MASK;
-  RPF4R = 0b0001;
-
-  /* Uart3 Rx : RPF5 */
-  TRISFSET = _TRISF_TRISF5_MASK;
-  U3RXR =  0b0010;
-
-  /* SPI1 MISO : RPD3 */
-  ANSELDCLR = _ANSELD_ANSD3_MASK;
-  TRISDSET = _TRISD_TRISD3_MASK;
-  SDI1R = 0b0000;
-
-  /* SPI1 MOSI : RPD4 */
-  TRISDCLR = _TRISD_TRISD4_MASK;
-  RPD4R = 0b1000;
-
-  /* SPI2 MISO : RPG7 */
-  ANSELGCLR = _ANSELG_ANSG7_MASK;
-  TRISGSET = _TRISG_TRISG7_MASK;
-  SDI2R = 0b0001;
-
-  /* SPI2 MOSI : RPG8 */
-  ANSELGCLR = _ANSELG_ANSG8_MASK;
-  TRISGCLR = _TRISG_TRISG8_MASK;
-  RPG8R = 0b0110;
-
-  #ifdef __USE_CC2520__
-
-    /* INT1 for CC2520 FIFOP: RD5 */
-    TRISDSET = _TRISD_TRISD5_MASK;
-    INT1R = 0b0110;
-
-  #elif __USE_CA8210
-
-    /* INT1 for CA8210 NIRQ: RD1 */
-    TRISDSET = _TRISD_TRISD1_MASK;
-    INT1R = 0b0000;
-
-  #endif
-
-  /* Lock again */
-  CFGCONbits.IOLOCK=1;
-  SYSKEY = 0;
-
-  /* Enable interrupts */
-  ASM_EN_INT;
+  PROCESS_EXITHANDLER(goto exit;)
+  PROCESS_BEGIN();
+  static int i;
+ // static struct etimer timer;
+  SENSORS_ACTIVATE(motion_sensor);
+  while(1) {
+    PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event));
+    if (data == &motion_sensor) {
+      printf("Motion event received\n");
+      leds_on(LEDS_ALL);
+      /* Delay for 500ms */
+      for(i=0;i<=500;++i) {
+      clock_delay_usec(1000);
+      }
+      leds_off(LEDS_ALL);
+    }
+  }
+  exit:
+  SENSORS_DEACTIVATE(motion_sensor);
+  PROCESS_END();
 }
-
 /*---------------------------------------------------------------------------*/
